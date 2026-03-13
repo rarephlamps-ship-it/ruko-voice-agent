@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log*
+.env
+.env.local
+
+# Android build artifacts
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# Android IDE files
+android/.idea/
+android/**/*.iml
+android/captures/
+
+# google-services.json MUST NOT be committed (contains Firebase config)
+android/app/google-services.json
+
+# macOS
+.DS_Store
