@@ -1,0 +1,10 @@
+node_modules/
+
+# Environment variables — never commit secrets
+.env
+
+# Android build artifacts (see android/.gitignore for more)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
