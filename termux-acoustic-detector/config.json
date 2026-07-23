@@ -1,0 +1,15 @@
+{
+  "record_seconds": 8,
+  "pause_seconds": 1,
+  "sample_rate": 16000,
+  "minimum_rms": 0.008,
+  "speech_threshold": 0.55,
+  "footstep_threshold": 0.58,
+  "drone_threshold": 0.60,
+  "software_gain": 1.5,
+  "save_event_audio": true,
+  "retention_days": 3,
+  "notifications": true,
+  "vibrate": true,
+  "cooldown_seconds": 20
+}
