@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat ci/silent-copilot/source.b64.* | base64 -d > ruko-source.zip
+          cat ci/silent-copilot/source.b64.001 ci/silent-copilot/source.b64.002 ci/silent-copilot/source.b64.003 ci/silent-copilot/source.b64.004 ci/silent-copilot/source.b64.005a ci/silent-copilot/source.b64.005b ci/silent-copilot/source.b64.005c ci/silent-copilot/source.b64.005d ci/silent-copilot/source.b64.005e ci/silent-copilot/source.b64.006 | base64 -d > ruko-source.zip
           echo 'f2dbb53d31bef8059e79aed3e26251e2be4f25bb30b7e7c4f506d090908d4677  ruko-source.zip' | sha256sum -c -
           mkdir work
           unzip -q ruko-source.zip -d work
