@@ -7,7 +7,7 @@ on:
       - 'ci/silent-copilot/**'
       - '.github/workflows/silent-copilot-android.yml'
   pull_request:
-    branches: [main]
+    branches: [main, silent-meeting-copilot-v1]
     paths:
       - 'ci/silent-copilot/**'
       - '.github/workflows/silent-copilot-android.yml'
