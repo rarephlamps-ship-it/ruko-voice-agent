@@ -1,0 +1,135 @@
+name: Silent Copilot Android Release Gate
+
+on:
+  push:
+    branches: [silent-meeting-copilot-v1]
+    paths:
+      - 'ci/silent-copilot/**'
+      - '.github/workflows/silent-copilot-android.yml'
+  pull_request:
+    branches: [main, silent-meeting-copilot-v1]
+    paths:
+      - 'ci/silent-copilot/**'
+      - '.github/workflows/silent-copilot-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct exact source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat ci/silent-copilot/source.b64.001 ci/silent-copilot/source.b64.002 ci/silent-copilot/source.b64.003 ci/silent-copilot/source.b64.004 ci/silent-copilot/source.b64.005a ci/silent-copilot/source.b64.005b ci/silent-copilot/source.b64.005c ci/silent-copilot/source.b64.005d ci/silent-copilot/source.b64.005e ci/silent-copilot/source.b64.006 | base64 -d > ruko-source.zip
+          echo 'f2dbb53d31bef8059e79aed3e26251e2be4f25bb30b7e7c4f506d090908d4677  ruko-source.zip' | sha256sum -c -
+          mkdir work
+          unzip -q ruko-source.zip -d work
+          unzip -t ruko-source.zip
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Backend and source gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd work
+          python -m pip install --disable-pip-version-check 'pytest>=9,<10' 'fastapi>=0.128,<1' 'uvicorn>=0.48,<1' 'openai>=2,<3' 'pydantic>=2.13,<3' 'httpx>=0.28,<1'
+          python -m compileall -q backend/silent_copilot
+          PYTHONPATH=backend pytest -q backend/tests
+          python scripts/verify_source.py
+          rm -rf /tmp/ruko-core-test && mkdir -p /tmp/ruko-core-test
+          javac -d /tmp/ruko-core-test \
+            android/app/src/main/java/dk/ruko/silentmeetingcopilot/TranscriptBuffer.java \
+            android/app/src/main/java/dk/ruko/silentmeetingcopilot/QuestionDetector.java \
+            android/app/src/main/java/dk/ruko/silentmeetingcopilot/RestartPolicy.java \
+            android/app/src/test/java/dk/ruko/silentmeetingcopilot/CoreLogicTest.java
+          java -cp /tmp/ruko-core-test dk.ruko.silentmeetingcopilot.CoreLogicTest
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Ensure Android API 36 toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=${ANDROID_HOME:-}"
+          test -n "${ANDROID_HOME:-}"
+          sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+          test -f "$ANDROID_HOME/platforms/android-36/android.jar"
+          test -x "$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          test -x "$ANDROID_HOME/build-tools/36.0.0/zipalign"
+
+      - name: Android unit, lint and debug build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd work/android
+          gradle --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug
+
+      - name: Build unsigned release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd work/android
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/build.gradle.kts')
+          s=p.read_text()
+          old='release { isMinifyEnabled = false; signingConfig = signingConfigs.getByName("release") }'
+          new='release { isMinifyEnabled = false }'
+          if old not in s:
+              raise SystemExit('release signing stanza not found')
+          p.write_text(s.replace(old,new))
+          PY
+          gradle --no-daemon --stacktrace assembleRelease
+          test -s app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Align, inspect and hash artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          mkdir -p out/build-tools
+          cp work/android/app/build/outputs/apk/debug/app-debug.apk out/Ruko-Silent-Meeting-Copilot-v1.0.0-debug.apk
+          "$BT/zipalign" -f -p 4 work/android/app/build/outputs/apk/release/app-release-unsigned.apk out/Ruko-Silent-Meeting-Copilot-v1.0.0-release-aligned-unsigned.apk
+          "$BT/zipalign" -c -P 16 -v 4 out/Ruko-Silent-Meeting-Copilot-v1.0.0-release-aligned-unsigned.apk
+          "$BT/apksigner" verify --verbose --print-certs out/Ruko-Silent-Meeting-Copilot-v1.0.0-debug.apk
+          "$BT/aapt" dump badging out/Ruko-Silent-Meeting-Copilot-v1.0.0-release-aligned-unsigned.apk > out/release-badging.txt
+          "$BT/aapt" dump permissions out/Ruko-Silent-Meeting-Copilot-v1.0.0-release-aligned-unsigned.apk > out/release-permissions.txt
+          grep -q "package: name='dk.ruko.silentmeetingcopilot'" out/release-badging.txt
+          grep -q "sdkVersion:'28'" out/release-badging.txt
+          grep -q "targetSdkVersion:'36'" out/release-badging.txt
+          ! grep -Eq 'MANAGE_EXTERNAL_STORAGE|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE' out/release-permissions.txt
+          cp "$BT/apksigner" out/build-tools/
+          cp "$BT/zipalign" out/build-tools/
+          cp "$BT/aapt" out/build-tools/
+          cp "$BT/aapt2" out/build-tools/
+          cp -R "$BT/lib" out/build-tools/
+          cp -R "$BT/lib64" out/build-tools/ 2>/dev/null || true
+          sha256sum out/Ruko-Silent-Meeting-Copilot-v1.0.0-debug.apk out/Ruko-Silent-Meeting-Copilot-v1.0.0-release-aligned-unsigned.apk > out/SHA256SUMS.txt
+
+      - name: Upload release-gate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruko-silent-copilot-v1-release-gate
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
