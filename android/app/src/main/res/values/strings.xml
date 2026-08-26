@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Ruko Voice Agent</string>
+
+    <!-- Status labels -->
+    <string name="label_registration">Registration</string>
+    <string name="label_outgoing_call">Outgoing Call</string>
+    <string name="label_call_state">Call State</string>
+    <string name="label_incoming_call">Incoming Call</string>
+    <string name="status_idle">Idle</string>
+
+    <!-- Hints -->
+    <string name="hint_to">Callee identity or phone number (e.g. alice)</string>
+
+    <!-- Buttons -->
+    <string name="btn_register">Register</string>
+    <string name="btn_unregister">Unregister</string>
+    <string name="btn_call">Call</string>
+    <string name="btn_hangup">Hang Up</string>
+    <string name="btn_accept">Accept</string>
+    <string name="btn_reject">Reject</string>
+</resources>

@@ -1,0 +1,17 @@
+# Android Studio project files
+.idea/
+*.iml
+
+# Gradle build output and caches
+**/build/
+.gradle/
+
+# Local machine configuration (never commit)
+local.properties
+
+# Firebase config (add google-services.json locally — see README)
+google-services.json
+
+# OS cruft
+.DS_Store
+Thumbs.db
