@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Ruko Voice</string>
+    <string name="status_initialising">Initialising…</string>
+    <string name="btn_call">Place Call</string>
+    <string name="btn_hangup">Hang Up</string>
+    <string name="incoming_call">Incoming Call</string>
+    <string name="btn_accept">Accept</string>
+    <string name="btn_reject">Reject</string>
+</resources>
