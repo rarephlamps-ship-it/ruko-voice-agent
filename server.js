@@ -1,29 +1,23 @@
-const express = require("express");
-const bodyParser = require("body-parser");
+const express = require('express');
+const twilio = require('twilio');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
-
-// Twilio Voice endpoint
-app.post("/voice", (req, res) => {
-  const twiml = `
-    <Response>
-      <Say language="da-DK">
-        Hej. Dette er Rukos AI agent. Systemet virker.
-      </Say>
-    </Response>
-  `;
-
-  res.type("text/xml");
-  res.send(twiml);
-});
-
-// Health check
-app.get("/", (req, res) => {
-  res.send("Ruko Voice Agent kører.");
-});
-
 const PORT = process.env.PORT || 3000;
+
+// Use express.urlencoded instead of body-parser
+app.use(express.urlencoded({ extended: false }));
+
+app.post('/voice', (req, res) => {
+    const twiml = new twilio.twiml.VoiceResponse();
+    twiml.say('Hello, this is a Twilio voice response!');
+    res.type('text/xml');
+    res.send(twiml);
+});
+
+app.get('/', (req, res) => {
+    res.send('Service is running!');
+});
+
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+    console.log(`Server running on port ${PORT}`);
 });
