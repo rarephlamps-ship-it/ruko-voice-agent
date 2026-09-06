@@ -105,11 +105,16 @@ app.get("/", (req, res) => {
 
 // Generic error handling middleware
 app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.url}`, err);
+  console.error("[" + new Date().toISOString() + "]", req.method, req.url, err);
   res.status(500).json({ error: "Internal Server Error" });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
-});
+let server;
+if (require.main === module) {
+  server = app.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
+  });
+}
+
+module.exports = { app, server };

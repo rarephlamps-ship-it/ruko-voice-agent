@@ -3,6 +3,7 @@
 
     <!-- Network access for token endpoint and Twilio Voice SDK -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Microphone for voice calls -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Audio routing (speaker/earpiece) -->
@@ -24,6 +25,7 @@
         android:icon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
         <activity

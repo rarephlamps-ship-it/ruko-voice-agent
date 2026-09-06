@@ -35,10 +35,15 @@ class RukoFirebaseMessagingService : FirebaseMessagingService() {
     /** Called when a new FCM token is generated (first launch or token refresh). */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Re-registration with Twilio happens inside MainActivity when the user
-        // taps "Register". Nothing extra is needed here for the scaffold, but in
-        // a production app you may want to persist the token and re-register if a
-        // valid access token is already cached.
+        TokenStore.saveFcmToken(applicationContext, token)
+
+        val accessToken = TokenStore.getAccessToken(applicationContext)
+        if (!accessToken.isNullOrEmpty()) {
+            Voice.register(accessToken, Voice.RegistrationChannel.FCM, token, object : com.twilio.voice.RegistrationListener {
+                override fun onRegistered(accessToken: String, fcmToken: String) {}
+                override fun onError(registrationException: com.twilio.voice.RegistrationException, accessToken: String, fcmToken: String) {}
+            })
+        }
     }
 
     /** Called for every incoming FCM data message — Twilio incoming calls arrive here. */
@@ -91,10 +96,11 @@ class RukoFirebaseMessagingService : FirebaseMessagingService() {
             .setSmallIcon(android.R.drawable.ic_menu_call)
             .setContentTitle("Incoming call")
             .setContentText(caller)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setAutoCancel(false)
             .setOngoing(true)
+            .setFullScreenIntent(pendingIntent, true)
             .setContentIntent(pendingIntent)
             .build()
 

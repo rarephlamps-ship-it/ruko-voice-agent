@@ -4,7 +4,8 @@
   "description": "Ruko Voice Agent — Node/Express backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"

@@ -1,6 +1,7 @@
 package com.ruko.voiceagent
 
-import android.Manifest
+import android.media.AudioManager
+import org.json.JSONObject
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
@@ -33,6 +34,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity(), CallManager.CallManagerListener {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var audioManager: AudioManager
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -50,6 +52,8 @@ class MainActivity : AppCompatActivity(), CallManager.CallManagerListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         setupButtons()
         checkAndRequestPermissions()
@@ -143,11 +147,12 @@ class MainActivity : AppCompatActivity(), CallManager.CallManagerListener {
         return@withContext try {
             val url = "${BuildConfig.TOKEN_SERVER_URL}/token?identity=ruko-user"
             val response = URL(url).readText()
-            // Response JSON: {"token":"<jwt>","identity":"<id>"}
-            val tokenStart = response.indexOf("\"token\":\"") + 9
-            val tokenEnd = response.indexOf("\"", tokenStart)
-            if (tokenStart > 8 && tokenEnd > tokenStart) response.substring(tokenStart, tokenEnd)
-            else null
+            val json = JSONObject(response)
+            if (json.has("token")) {
+                val token = json.getString("token")
+                TokenStore.saveAccessToken(applicationContext, token)
+                token
+            } else null
         } catch (e: Exception) {
             null
         }
@@ -275,6 +280,7 @@ class MainActivity : AppCompatActivity(), CallManager.CallManagerListener {
 
     private val callListener = object : Call.Listener {
         override fun onConnectFailure(call: Call, callException: CallException) {
+            audioManager.mode = AudioManager.MODE_NORMAL
             setCallState("Connect failed: ${callException.message}")
             CallManager.activeCall = null
         }
@@ -284,6 +290,7 @@ class MainActivity : AppCompatActivity(), CallManager.CallManagerListener {
         }
 
         override fun onConnected(call: Call) {
+            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
             setCallState("Connected")
         }
 
@@ -292,10 +299,12 @@ class MainActivity : AppCompatActivity(), CallManager.CallManagerListener {
         }
 
         override fun onReconnected(call: Call) {
+            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
             setCallState("Reconnected")
         }
 
         override fun onDisconnected(call: Call, callException: CallException?) {
+            audioManager.mode = AudioManager.MODE_NORMAL
             setCallState(if (callException != null) "Disconnected: ${callException.message}" else "Disconnected")
             CallManager.activeCall = null
         }
