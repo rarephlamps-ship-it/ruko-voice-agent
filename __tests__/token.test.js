@@ -19,9 +19,18 @@ describe("/token endpoint authentication", () => {
     expect(res.body.error).toMatch(/unauthorized/i);
   });
 
-  test("rejects requests with an incorrect API key", async () => {
+  test("rejects requests with an incorrect API key header", async () => {
     const app = require("../server");
-    const res = await request(app).get("/token?api_key=wrong-key");
+    const res = await request(app).get("/token").set("X-API-Key", "wrong-key");
+    expect(res.status).toBe(401);
+  });
+
+  test("rejects requests that pass the API key as a query parameter", async () => {
+    // The query-parameter fallback was removed: query strings can leak into
+    // access logs, browser history, or proxy logs, so only the header is
+    // accepted.
+    const app = require("../server");
+    const res = await request(app).get("/token?api_key=test-secret-key");
     expect(res.status).toBe(401);
   });
 
@@ -30,23 +39,17 @@ describe("/token endpoint authentication", () => {
     process.env = { ...ORIGINAL_ENV };
     delete process.env.TWILIO_API_KEY;
     const app = require("../server");
-    const res = await request(app).get("/token?api_key=anything");
+    const res = await request(app).get("/token").set("X-API-Key", "anything");
     expect(res.status).toBe(500);
   });
 
-  test("accepts a valid API key via query param but reports missing Twilio credentials", async () => {
-    const app = require("../server");
-    const res = await request(app).get("/token?api_key=test-secret-key");
-    // Auth passes; without Twilio credentials configured the server should
-    // report a configuration error rather than a 401.
-    expect(res.status).toBe(500);
-  });
-
-  test("accepts a valid API key via X-API-Key header", async () => {
+  test("accepts a valid API key via X-API-Key header but reports missing Twilio credentials", async () => {
     const app = require("../server");
     const res = await request(app)
       .get("/token")
       .set("X-API-Key", "test-secret-key");
+    // Auth passes; without Twilio credentials configured the server should
+    // report a configuration error rather than a 401.
     expect(res.status).toBe(500);
   });
 
@@ -57,9 +60,9 @@ describe("/token endpoint authentication", () => {
     process.env.TWILIO_TWIML_APP_SID = "APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
     const app = require("../server");
-    const res = await request(app).get(
-      "/token?api_key=test-secret-key&identity=alice"
-    );
+    const res = await request(app)
+      .get("/token?identity=alice")
+      .set("X-API-Key", "test-secret-key");
     expect(res.status).toBe(200);
     expect(res.body.identity).toBe("alice");
     expect(typeof res.body.token).toBe("string");
@@ -72,10 +75,9 @@ describe("/token endpoint authentication", () => {
     process.env.TWILIO_TWIML_APP_SID = "APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
     const app = require("../server");
-    const res = await request(app).get(
-      "/token?api_key=test-secret-key&identity=" +
-        encodeURIComponent("<script>alert(1)</script>")
-    );
+    const res = await request(app)
+      .get("/token?identity=" + encodeURIComponent("<script>alert(1)</script>"))
+      .set("X-API-Key", "test-secret-key");
     expect(res.status).toBe(200);
     expect(res.body.identity).toBe("scriptalert1script");
   });

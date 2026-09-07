@@ -15,11 +15,9 @@ const APP_API_KEY = process.env.TWILIO_API_KEY;
 // obtain a valid Twilio Voice Access Token, enabling toll fraud and
 // identity spoofing via the `identity` query parameter.
 //
-// The `X-API-Key` header is preferred and checked first because query
-// parameters can end up in server access logs, browser history, or proxy
-// logs. The `api_key` query parameter is still supported as a fallback for
-// clients that cannot easily set custom headers; prefer the header in new
-// integrations.
+// Only the `X-API-Key` header is accepted (never a query parameter):
+// query strings can end up in server access logs, browser history, or
+// proxy logs, which would leak the key.
 function requireApiKey(req, res, next) {
   if (!APP_API_KEY) {
     console.error("Server misconfiguration: TWILIO_API_KEY is not set");
@@ -27,7 +25,7 @@ function requireApiKey(req, res, next) {
       .status(500)
       .json({ error: "Server misconfiguration: authentication is not configured" });
   }
-  const apiKey = req.get("X-API-Key") || req.query.api_key;
+  const apiKey = req.get("X-API-Key");
   if (!apiKey || apiKey !== APP_API_KEY) {
     return res
       .status(401)
@@ -92,9 +90,12 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// Generic error handler — prevents unhandled exceptions from crashing the process
+// Generic error handler — prevents unhandled exceptions from crashing the process.
+// Fields are passed as separate arguments (not interpolated into one string) so
+// that user-controlled values (e.g. req.url) can't be misinterpreted as printf-style
+// format specifiers by console.error/util.format.
 app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.url}`, err);
+  console.error("[%s] %s %s", new Date().toISOString(), req.method, req.url, err);
   res.status(500).json({ error: "Internal Server Error" });
 });
 

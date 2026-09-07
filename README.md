@@ -14,11 +14,11 @@ See [`.env.example`](.env.example) for the full list. The most important one
 for security is:
 
 - `TWILIO_API_KEY` — a secret application-level API key required to call the
-  `/token` endpoint. Requests must include it as an `X-API-Key` header
-  (preferred) or a `?api_key=` query parameter (supported as a fallback,
-  but avoid it where possible since query strings can end up in access
-  logs or browser history); requests without a valid key are rejected with
-  `401 Unauthorized`. **This value has no default** — if it is not set, the
+  `/token` endpoint. Requests must include it as an `X-API-Key` header;
+  there is no query-parameter fallback, since query strings can end up in
+  access logs, browser history, or proxy logs. Requests without a valid
+  key are rejected with `401 Unauthorized`. **This value has no default** —
+  if it is not set, the
   server responds to `/token` with `500 Server misconfiguration` instead of
   silently allowing unauthenticated access. Generate a strong random value,
   e.g. `openssl rand -hex 32`, and keep it secret (do not commit it to
