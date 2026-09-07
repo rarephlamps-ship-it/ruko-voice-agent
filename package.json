@@ -1,0 +1,20 @@
+{
+  "name": "ruko-voice-agent",
+  "version": "1.0.0",
+  "description": "Ruko Voice Agent - Twilio powered voice backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "body-parser": "^2.3.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "twilio": "^6.1.0"
+  },
+  "devDependencies": {
+    "jest": "^30.5.1",
+    "supertest": "^7.2.2"
+  }
+}
