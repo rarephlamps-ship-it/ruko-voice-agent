@@ -14,8 +14,14 @@ const APP_API_KEY = process.env.TWILIO_API_KEY || "dev-key-insecure";
 // Authentication middleware: without this, anyone could call /token and
 // obtain a valid Twilio Voice Access Token, enabling toll fraud and
 // identity spoofing via the `identity` query parameter.
+//
+// The `X-API-Key` header is preferred and checked first because query
+// parameters can end up in server access logs, browser history, or proxy
+// logs. The `api_key` query parameter is still supported as a fallback for
+// clients that cannot easily set custom headers; prefer the header in new
+// integrations.
 function requireApiKey(req, res, next) {
-  const apiKey = req.query.api_key || req.get("X-API-Key");
+  const apiKey = req.get("X-API-Key") || req.query.api_key;
   if (!apiKey || apiKey !== APP_API_KEY) {
     return res
       .status(401)
