@@ -16,8 +16,9 @@ for security is:
   (preferred) or a `?api_key=` query parameter (supported as a fallback,
   but avoid it where possible since query strings can end up in access
   logs or browser history); requests without a valid key are rejected with
-  `401 Unauthorized`. **Do not use the insecure development default in
-  production** — generate a strong random value instead, e.g.
+  `401 Unauthorized`. Token issuance is disabled (`503`) when this setting
+  is missing, blank, or the known `dev-key-insecure` placeholder. There is
+  no development fallback. Generate a strong random value instead, e.g.
   `openssl rand -hex 32`, and keep it secret (do not commit it to source
   control).
 

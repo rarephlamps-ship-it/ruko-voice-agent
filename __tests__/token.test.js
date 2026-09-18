@@ -12,6 +12,25 @@ describe("/token endpoint authentication", () => {
     process.env = ORIGINAL_ENV;
   });
 
+  test.each([undefined, "", "   ", "dev-key-insecure"])(
+    "disables token issuance with unsafe application key %p",
+    async (configuredKey) => {
+      if (configuredKey === undefined) delete process.env.TWILIO_API_KEY;
+      else process.env.TWILIO_API_KEY = configuredKey;
+      // Synthetic credentials exercise token minting without network access.
+      process.env.TWILIO_ACCOUNT_SID = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+      process.env.TWILIO_API_KEY_SID = "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+      process.env.TWILIO_API_KEY_SECRET = "secret";
+      process.env.TWILIO_TWIML_APP_SID = "APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+      const app = require("../server");
+      const res = await request(app).get("/token").query({
+        api_key: configuredKey || "dev-key-insecure",
+      });
+      expect(res.status).toBe(503);
+      expect(res.body.token).toBeUndefined();
+    }
+  );
+
   test("rejects requests without an API key", async () => {
     const app = require("../server");
     const res = await request(app).get("/token");

@@ -9,7 +9,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // Application-level API key used to authenticate requests to this server's
 // /token endpoint. This is NOT the same as Twilio's own Account SID/Auth
 // Token or API Key/Secret used below to mint Access Tokens.
-const APP_API_KEY = process.env.TWILIO_API_KEY || "dev-key-insecure";
+const APP_API_KEY = process.env.TWILIO_API_KEY;
+const APP_API_KEY_CONFIGURED =
+  typeof APP_API_KEY === "string" &&
+  APP_API_KEY.trim().length > 0 &&
+  APP_API_KEY.trim() !== "dev-key-insecure";
 
 // Authentication middleware: without this, anyone could call /token and
 // obtain a valid Twilio Voice Access Token, enabling toll fraud and
@@ -21,6 +25,9 @@ const APP_API_KEY = process.env.TWILIO_API_KEY || "dev-key-insecure";
 // clients that cannot easily set custom headers; prefer the header in new
 // integrations.
 function requireApiKey(req, res, next) {
+  if (!APP_API_KEY_CONFIGURED) {
+    return res.status(503).json({ error: "Token issuance is not configured" });
+  }
   const apiKey = req.get("X-API-Key") || req.query.api_key;
   if (!apiKey || apiKey !== APP_API_KEY) {
     return res
